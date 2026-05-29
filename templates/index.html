@@ -1,23 +1,312 @@
-{% extends "base.html" %}
-
-{% block content %}
-<h2>Мои записи</h2>
-{% if entries %}
-    <div class="entries-list">
-        {% for entry in entries %}
-            <div class="entry-card">
-                <h3>{{ entry.title }}</h3>
-                <p class="date">{{ entry.date }}</p>
-                <div class="entry-actions">
-                    <a href="{{ url_for('detail', entry_id=entry.id) }}" class="btn-read">Читать</a>
-                    <form action="{{ url_for('delete', entry_id=entry.id) }}" method="POST" style="display: inline;">
-                        <button type="submit" class="btn-delete" onclick="return confirm('Вы уверены?')">Удалить</button>
-                    </form>
-                </div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список дел</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        /* Форма поиска */
+        .search-form {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-form input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .search-form button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .search-form button:hover {
+            background: #5a67d8;
+        }
+        
+        /* Ссылки сортировки */
+        .sort-links {
+            background: #f7f7f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .sort-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .sort-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        /* Форма добавления задачи */
+        .add-task-form {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .add-task-form input, .add-task-form select {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .add-task-form input[type="text"] {
+            width: 60%;
+        }
+        
+        .add-task-form button {
+            padding: 10px 20px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .add-task-form button:hover {
+            background: #38a169;
+        }
+        
+        /* Список задач */
+        .task-list {
+            list-style: none;
+        }
+        
+        .task-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .task-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .task-content {
+            flex: 1;
+        }
+        
+        .task-text {
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .task-text.completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+        
+        .task-meta {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .priority-high {
+            color: #e53e3e;
+            font-weight: bold;
+        }
+        
+        .priority-medium {
+            color: #ed8936;
+        }
+        
+        .priority-low {
+            color: #48bb78;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .btn-toggle {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-delete {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-toggle:hover {
+            background: #3182ce;
+        }
+        
+        .btn-delete:hover {
+            background: #e53e3e;
+        }
+        
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+        
+        .info {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Мой список дел</h1>
+        
+        <!-- Форма поиска -->
+        <form action="/search" method="get" class="search-form">
+            <input type="text" name="q" placeholder="Поиск по задачам..." value="{{ search_query or '' }}">
+            <button type="submit">🔍 Найти</button>
+        </form>
+        
+        <!-- Ссылки сортировки -->
+        <div class="sort-links">
+            <strong>Сортировать:</strong>
+            <a href="/sort/date">📅 По дате (новые)</a> |
+            <a href="/sort/status">✅ По статусу</a> |
+            <a href="/sort/priority">⭐ По приоритету</a> |
+            <a href="/sort/alpha">🔤 По алфавиту</a>
+            {% if search_query %}
+                | <a href="/">❌ Сбросить фильтр</a>
+            {% endif %}
+        </div>
+        
+        <!-- Форма добавления задачи -->
+        <div class="add-task-form">
+            <h3>Добавить новую задачу:</h3>
+            <form action="/add" method="post">
+                <input type="text" name="task_text" placeholder="Что нужно сделать?" required>
+                <select name="priority">
+                    <option value="высокий">Высокий приоритет</option>
+                    <option value="средний" selected>Средний приоритет</option>
+                    <option value="низкий">Низкий приоритет</option>
+                </select>
+                <button type="submit">➕ Добавить</button>
+            </form>
+        </div>
+        
+        <!-- Информация о количестве задач -->
+        <div class="info">
+            Всего задач: {{ tasks|length }}
+            {% if search_query %}
+                | Поиск: "{{ search_query }}"
+            {% endif %}
+        </div>
+        
+        <!-- Список задач -->
+        {% if tasks %}
+            <ul class="task-list">
+                {% for task in tasks %}
+                <li class="task-item">
+                    <div class="task-content">
+                        <div class="task-text {% if task.done %}completed{% endif %}">
+                            {{ task.text }}
+                        </div>
+                        <div class="task-meta">
+                            📅 {{ task.date }}
+                            | Приоритет: 
+                            <span class="
+                                {% if task.priority == 'высокий' %}priority-high
+                                {% elif task.priority == 'средний' %}priority-medium
+                                {% else %}priority-low{% endif %}">
+                                {{ task.priority }}
+                            </span>
+                            | Статус: {% if task.done %}✅ Выполнено{% else %}⏳ Активно{% endif %}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <a href="/toggle/{{ task.id }}" class="btn btn-toggle">
+                            {% if task.done %}↩️ Вернуть{% else %}✅ Выполнить{% endif %}
+                        </a>
+                        <a href="/delete/{{ task.id }}" class="btn btn-delete" onclick="return confirm('Удалить задачу?')">🗑️ Удалить</a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-message">
+                <p>✨ Задач пока нет</p>
+                <p>Добавьте свою первую задачу выше!</p>
             </div>
-        {% endfor %}
+        {% endif %}
+        
+        <hr>
+        <div class="info">
+            💡 Подсказка: Используйте сортировку и поиск для удобного управления задачами
+        </div>
     </div>
-{% else %}
-    <p class="empty-message">Пока нет записей. Создайте первую!</p>
-{% endif %}
-{% endblock %}
+</body>
+</html>

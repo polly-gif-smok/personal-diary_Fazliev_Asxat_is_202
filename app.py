@@ -1,84 +1,109 @@
 from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 app = Flask(__name__)
 
-def load_entries():
-    if not os.path.exists('entries.json'):
-        return []
-    with open('entries.json', 'r', encoding='utf-8') as f:
-        return json.load(f)
+# Файл для хранения задач
+TASKS_FILE = 'tasks.json'
 
-def save_entries(entries):
-    with open('entries.json', 'w', encoding='utf-8') as f:
-        json.dump(entries, f, ensure_ascii=False, indent=2)
+# Загрузка задач из файла
+def load_tasks():
+    if os.path.exists(TASKS_FILE):
+        with open(TASKS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
 
-entries = load_entries()
+# Сохранение задач в файл
+def save_tasks(tasks):
+    with open(TASKS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(tasks, f, ensure_ascii=False, indent=2)
 
+# Загружаем задачи при старте
+tasks = load_tasks()
+
+# Главная страница
 @app.route('/')
 def index():
-    return render_template('index.html', entries=entries)
+    return render_template('index.html', tasks=tasks, search_query='')
 
-@app.route('/entry/<int:entry_id>')
-def detail(entry_id):
-    entry = next((e for e in entries if e['id'] == entry_id), None)
-    if entry:
-        return render_template('detail.html', entry=entry)
-    return "Запись не найдена", 404
-
-@app.route('/add', methods=['GET', 'POST'])
-def add():
-    if request.method == 'POST':
-        title = request.form.get('title')
-        content = request.form.get('content')
-        new_id = max([e['id'] for e in entries]) + 1 if entries else 1
-        entry = {
-            'id': new_id,
-            'title': title,
-            'content': content,
-            'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        entries.append(entry)
-        save_entries(entries)
-        return redirect(url_for('index'))
-    return render_template('add.html')
-
-@app.route('/edit/<int:entry_id>', methods=['GET', 'POST'])
-def edit(entry_id):
-    entry = next((e for e in entries if e['id'] == entry_id), None)
-    if not entry:
-        return "Запись не найдена", 404
-    if request.method == 'POST':
-        entry['title'] = request.form.get('title')
-        entry['content'] = request.form.get('content')
-        save_entries(entries)
-        return redirect(url_for('index'))
-    return render_template('edit.html', entry=entry)
-
-@app.route('/delete/<int:entry_id>', methods=['POST'])
-def delete(entry_id):
-    global entries
-    entries = [e for e in entries if e['id'] != entry_id]
-    save_entries(entries)
-    return redirect(url_for('index'))
-
+# Поиск задач
 @app.route('/search')
 def search():
-    query = request.args.get('q', '').lower()
-    filtered_entries = [e for e in entries if query in e['title'].lower()]
-    return render_template('index.html', entries=filtered_entries)
+    query = request.args.get('q', '').strip().lower()
+    if query:
+        filtered_tasks = [task for task in tasks if query in task['text'].lower()]
+    else:
+        filtered_tasks = tasks
+    return render_template('index.html', tasks=filtered_tasks, search_query=query)
 
-@app.route('/filter/week')
-def filter_week():
-    week_ago = datetime.now() - timedelta(days=7)
-    filtered_entries = []
-    for e in entries:
-        entry_date = datetime.strptime(e['date'], '%Y-%m-%d %H:%M:%S')
-        if entry_date >= week_ago:
-            filtered_entries.append(e)
-    return render_template('index.html', entries=filtered_entries)
+# Сортировка по дате (новые сверху)
+@app.route('/sort/date')
+def sort_by_date():
+    sorted_tasks = sorted(tasks, key=lambda t: t.get('date', ''), reverse=True)
+    return render_template('index.html', tasks=sorted_tasks, search_query='')
 
+# Сортировка по статусу (сначала активные)
+@app.route('/sort/status')
+def sort_by_status():
+    sorted_tasks = sorted(tasks, key=lambda t: t.get('done', False))
+    return render_template('index.html', tasks=sorted_tasks, search_query='')
+
+# Сортировка по приоритету (высокий → средний → низкий)
+@app.route('/sort/priority')
+def sort_by_priority():
+    priority_order = {'высокий': 1, 'средний': 2, 'низкий': 3}
+    sorted_tasks = sorted(
+        tasks,
+        key=lambda t: priority_order.get(t.get('priority', 'средний'), 2)
+    )
+    return render_template('index.html', tasks=sorted_tasks, search_query='')
+
+# Сортировка по алфавиту (А → Я)
+@app.route('/sort/alpha')
+def sort_by_alpha():
+    sorted_tasks = sorted(tasks, key=lambda t: t.get('text', '').lower())
+    return render_template('index.html', tasks=sorted_tasks, search_query='')
+
+# Добавление новой задачи
+@app.route('/add', methods=['POST'])
+def add_task():
+    task_text = request.form.get('task_text', '').strip()
+    task_priority = request.form.get('priority', 'средний')
+    task_date = datetime.now().strftime('%Y-%m-%d')
+    
+    if task_text:
+        new_task = {
+            'id': len(tasks) + 1,
+            'text': task_text,
+            'done': False,
+            'priority': task_priority,
+            'date': task_date
+        }
+        tasks.append(new_task)
+        save_tasks(tasks)
+    
+    return redirect(url_for('index'))
+
+# Переключение статуса выполнения задачи
+@app.route('/toggle/<int:task_id>')
+def toggle_task(task_id):
+    for task in tasks:
+        if task['id'] == task_id:
+            task['done'] = not task['done']
+            break
+    save_tasks(tasks)
+    return redirect(request.referrer or url_for('index'))
+
+# Удаление задачи
+@app.route('/delete/<int:task_id>')
+def delete_task(task_id):
+    global tasks
+    tasks = [task for task in tasks if task['id'] != task_id]
+    save_tasks(tasks)
+    return redirect(request.referrer or url_for('index'))
+
+# Запуск приложения
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
