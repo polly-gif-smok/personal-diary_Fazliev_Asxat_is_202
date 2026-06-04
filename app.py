@@ -20,17 +20,26 @@ def save_tasks(tasks):
     with open(TASKS_FILE, 'w', encoding='utf-8') as f:
         json.dump(tasks, f, ensure_ascii=False, indent=2)
 
-# Загружаем задачи при старте
-tasks = load_tasks()
+# Глобальный список задач (для простоты, но лучше использовать файл)
+# tasks = load_tasks()
 
-# Главная страница
+# Временно используем тестовые данные для демонстрации
+tasks = [
+    {'id': 1, 'text': 'Купить продукты', 'done': False, 'priority': 'высокий', 'date': '2026-06-05'},
+    {'id': 2, 'text': 'Сделать домашнее задание', 'done': False, 'priority': 'высокий', 'date': '2026-06-04'},
+    {'id': 3, 'text': 'Позвонить маме', 'done': True, 'priority': 'средний', 'date': '2026-06-03'},
+    {'id': 4, 'text': 'Записаться к врачу', 'done': False, 'priority': 'низкий', 'date': '2026-06-06'},
+    {'id': 5, 'text': 'Убрать в комнате', 'done': True, 'priority': 'средний', 'date': '2026-06-02'},
+]
+
 @app.route('/')
 def index():
+    """Главная страница - показывает все задачи"""
     return render_template('index.html', tasks=tasks, search_query='')
 
-# Поиск задач
 @app.route('/search')
 def search():
+    """Поиск задач по тексту"""
     query = request.args.get('q', '').strip().lower()
     if query:
         filtered_tasks = [task for task in tasks if query in task['text'].lower()]
@@ -38,72 +47,67 @@ def search():
         filtered_tasks = tasks
     return render_template('index.html', tasks=filtered_tasks, search_query=query)
 
-# Сортировка по дате (новые сверху)
 @app.route('/sort/date')
 def sort_by_date():
+    """Сортировка по дате (новые сверху)"""
+    # Получаем параметр поиска из URL, если он есть
+    search_query = request.args.get('search_query', '')
+    
+    # Сортируем задачи
     sorted_tasks = sorted(tasks, key=lambda t: t.get('date', ''), reverse=True)
-    return render_template('index.html', tasks=sorted_tasks, search_query='')
+    
+    # Если есть поисковый запрос, фильтруем дополнительно
+    if search_query:
+        sorted_tasks = [task for task in sorted_tasks if search_query.lower() in task['text'].lower()]
+    
+    return render_template('index.html', tasks=sorted_tasks, search_query=search_query)
 
-# Сортировка по статусу (сначала активные)
 @app.route('/sort/status')
 def sort_by_status():
+    """Сортировка по статусу (сначала активные)"""
+    search_query = request.args.get('search_query', '')
+    
+    # False (0) идет раньше True (1)
     sorted_tasks = sorted(tasks, key=lambda t: t.get('done', False))
-    return render_template('index.html', tasks=sorted_tasks, search_query='')
+    
+    if search_query:
+        sorted_tasks = [task for task in sorted_tasks if search_query.lower() in task['text'].lower()]
+    
+    return render_template('index.html', tasks=sorted_tasks, search_query=search_query)
 
-# Сортировка по приоритету (высокий → средний → низкий)
 @app.route('/sort/priority')
 def sort_by_priority():
+    """Сортировка по приоритету (высокий → средний → низкий)"""
+    search_query = request.args.get('search_query', '')
+    
     priority_order = {'высокий': 1, 'средний': 2, 'низкий': 3}
     sorted_tasks = sorted(
         tasks,
         key=lambda t: priority_order.get(t.get('priority', 'средний'), 2)
     )
-    return render_template('index.html', tasks=sorted_tasks, search_query='')
+    
+    if search_query:
+        sorted_tasks = [task for task in sorted_tasks if search_query.lower() in task['text'].lower()]
+    
+    return render_template('index.html', tasks=sorted_tasks, search_query=search_query)
 
-# Сортировка по алфавиту (А → Я)
 @app.route('/sort/alpha')
 def sort_by_alpha():
+    """Сортировка по алфавиту (А → Я)"""
+    search_query = request.args.get('search_query', '')
+    
     sorted_tasks = sorted(tasks, key=lambda t: t.get('text', '').lower())
-    return render_template('index.html', tasks=sorted_tasks, search_query='')
+    
+    if search_query:
+        sorted_tasks = [task for task in sorted_tasks if search_query.lower() in task['text'].lower()]
+    
+    return render_template('index.html', tasks=sorted_tasks, search_query=search_query)
 
-# Добавление новой задачи
-@app.route('/add', methods=['POST'])
-def add_task():
-    task_text = request.form.get('task_text', '').strip()
-    task_priority = request.form.get('priority', 'средний')
-    task_date = datetime.now().strftime('%Y-%m-%d')
-    
-    if task_text:
-        new_task = {
-            'id': len(tasks) + 1,
-            'text': task_text,
-            'done': False,
-            'priority': task_priority,
-            'date': task_date
-        }
-        tasks.append(new_task)
-        save_tasks(tasks)
-    
+# Дополнительно: маршрут для сброса всех фильтров и сортировок
+@app.route('/reset')
+def reset():
+    """Сброс всех фильтров и сортировок"""
     return redirect(url_for('index'))
 
-# Переключение статуса выполнения задачи
-@app.route('/toggle/<int:task_id>')
-def toggle_task(task_id):
-    for task in tasks:
-        if task['id'] == task_id:
-            task['done'] = not task['done']
-            break
-    save_tasks(tasks)
-    return redirect(request.referrer or url_for('index'))
-
-# Удаление задачи
-@app.route('/delete/<int:task_id>')
-def delete_task(task_id):
-    global tasks
-    tasks = [task for task in tasks if task['id'] != task_id]
-    save_tasks(tasks)
-    return redirect(request.referrer or url_for('index'))
-
-# Запуск приложения
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
