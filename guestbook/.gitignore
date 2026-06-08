@@ -1,31 +1,6 @@
-# База данных
 guestbook.db
-*.db
-*.sqlite
-*.sqlite3
-
-# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
+*.pyc
+.env
 venv/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Flask
-instance/
-.webassets-cache
-
-# Логи
-*.log
+env/
