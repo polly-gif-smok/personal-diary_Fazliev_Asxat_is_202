@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>О проекте | Гостевая книга</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #764ba2;
+            margin: 20px 0 10px 0;
+        }
+        
+        p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        ul {
+            margin-left: 30px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        
+        li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        
+        .back-link:hover {
+            background: #764ba2;
+        }
+        
+        .tech-badge {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 5px 5px 0 0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📘 О проекте</h1>
+            
+            <h2>Гостевая книга</h2>
+            <p>Это учебный проект, созданный в рамках практической работы №9. 
+               Проект демонстрирует основы работы с Flask и SQLite.</p>
+            
+            <h2>🛠️ Технологии</h2>
+            <div>
+                <span class="tech-badge">Python 3</span>
+                <span class="tech-badge">Flask</span>
+                <span class="tech-badge">SQLite</span>
+                <span class="tech-badge">HTML5/CSS3</span>
+                <span class="tech-badge">Jinja2</span>
+            </div>
+            
+            <h2>📋 Функциональность</h2>
+            <ul>
+                <li>✓ Просмотр всех сообщений</li>
+                <li>✓ Автоматическая сортировка по дате (новые сверху)</li>
+                <li>✓ Адаптивный дизайн</li>
+                <li>✓ Хранение данных в SQLite</li>
+            </ul>
+            
+            <h2>📊 Структура базы данных</h2>
+            <ul>
+                <li><strong>id</strong> - Уникальный номер сообщения (автоинкремент)</li>
+                <li><strong>name</strong> - Имя автора</li>
+                <li><strong>message</strong> - Текст сообщения</li>
+                <li><strong>created_at</strong> - Дата создания (YYYY-MM-DD)</li>
+            </ul>
+            
+            <h2>👨‍💻 Автор</h2>
+            <p>Учебный проект по курсу веб-разработки на Python</p>
+            
+            <a href="/" class="back-link">← На главную</a>
+        </div>
+    </div>
+</body>
+</html>
